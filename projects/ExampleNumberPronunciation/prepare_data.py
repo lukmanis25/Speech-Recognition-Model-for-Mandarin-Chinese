@@ -5,7 +5,7 @@ import librosa
 from sklearn.model_selection import train_test_split
 
 # Wczytywanie pliku CSV
-csv_file = 'recordings_with_tones.csv'
+csv_file = '../../recordings_with_tones.csv'
 data = pd.read_csv(csv_file)
 
 # Listy na cechy i etykiety
@@ -26,7 +26,7 @@ for index, row in data.iterrows():
     file_id = row['id']
     for column in columns:
         if pd.notnull(row[column]):
-            file_path = f'./recordings/stageI/{file_id}/{column[:2]}.wav'
+            file_path = f'../../recordings/stageI/{file_id}/{column[:2]}.wav'
             if os.path.exists(file_path):
                 features = extract_features(file_path)
                 X.append(features)
@@ -40,13 +40,13 @@ y = np.array(y)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Tworzenie folderów, jeśli nie istnieją
-os.makedirs('./prepared_data/train/', exist_ok=True)
-os.makedirs('./prepared_data/test/', exist_ok=True)
+os.makedirs('./data/train/', exist_ok=True)
+os.makedirs('./data/test/', exist_ok=True)
 
 # Zapisanie danych jako pliki numpy
-np.save('./prepared_data/train/X_train.npy', X_train)
-np.save('./prepared_data/train/y_train.npy', y_train)
-np.save('./prepared_data/test/X_test.npy', X_test)
-np.save('./prepared_data/test/y_test.npy', y_test)
+np.save('./data/train/X_train.npy', X_train)
+np.save('./data/train/y_train.npy', y_train)
+np.save('./data/test/X_test.npy', X_test)
+np.save('./data/test/y_test.npy', y_test)
 
 print("Dane zostały przygotowane i zapisane.")
