@@ -1,0 +1,5 @@
+datasets
+librosa
+soundfile
+torch
+torchaudio
