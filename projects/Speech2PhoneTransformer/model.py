@@ -60,19 +60,19 @@ class PinyinTransformer(nn.Transformer):
         # https://github.com/facebookresearch/fairseq/blob/main/fairseq/models/wav2vec/wav2vec2_asr.py
         # FAIRSEQ WAV2VEC2
 
-        # self.embedding = nn.Embedding(n_tokens, n_inputs)
-        # self.decoder = nn.Linear(n_inputs, n_tokens) # TransformerDecoder
+        self.embedding = nn.Embedding(n_tokens, n_inputs)
+        self.decoder_lin = nn.Linear(n_inputs, n_tokens) # TransformerDecoder
         
         # self.decoder - TransformerDecoder is a stack of N decoder layers.
         
 
-        # self.init_weigths()
+        self.init_emb()
     
-    def init_weigths(self):
+    def init_emb(self):
         init_range = 0.1
-        # nn.init.uniform_(self.embedding.weight, -init_range, init_range)
+        nn.init.uniform_(self.embedding.weight, -init_range, init_range)
         # nn.init.zeros_(self.decoder.bias)
-        # nn.init.uniform_(self.decoder.weight, -init_range, init_range)
+        nn.init.uniform_(self.decoder_lin.weight, -init_range, init_range)
         # super(PinyinTransformer, self).init_weights()
 
     def forward(self, src, tgt, has_mask=True):
@@ -87,7 +87,9 @@ class PinyinTransformer(nn.Transformer):
         self.decoder: nn.TransformerDecoder
         # src = self.positional_encoding(src)
         memory = self.encoder(src, mask=None)
-        output = self.decoder(tgt, memory)
+        target_emb = self.embedding(tgt)
+        output = self.decoder(target_emb, memory)
+        output = self.decoder_lin(output)
         return F.log_softmax(output, dim=-1)
 
     def recognize(self, src, phones):
@@ -96,4 +98,5 @@ class PinyinTransformer(nn.Transformer):
         """
         memory = self.encoder(src, mask=None)
         output = self.decoder(phones, memory)
+        output = self.decoder_lin(output)
         return output

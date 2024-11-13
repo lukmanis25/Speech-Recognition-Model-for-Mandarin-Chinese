@@ -91,7 +91,6 @@ class Main:
         n_head = 1 # nb of heads for multiheaded attention
         self.model = PinyinTransformer(N_TOKENS, n_inputs, n_head, n_hidden, n_layers).double().to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
-        self.loss_criterion = nn.CrossEntropyLoss(ignore_index=PADDING)
 
         # reduce the learning after 20 epochs by a factor of 10
         self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.1)
@@ -134,6 +133,7 @@ class Main:
         _, sample_rate, _ = train_set[0]
         print("done generating sets")
 
+        self.loss_criterion = nn.CrossEntropyLoss(ignore_index=data_handler.index.phon2idx[PADDING])
         # region sorting labels xd??
         # labels = []
         # try:
@@ -232,7 +232,16 @@ class Main:
         target: ( B, S ) - Batch size, Sequens length - target is a sequence of tokens
         """
         # TODO: use nn.NLLLoss
-        return self.loss_criterion(output, target)
+
+        # CEL:  outputs B, N_TOKENS, d1,d2,...
+        #       targets B, d1,d2,...
+
+        # target size:
+        # torch.Size([200, 27])
+        # output:
+        # torch.Size([200, 27, 3396])
+        # RuntimeError: Expected target size [200, 3396], got [200, 27]
+        return self.loss_criterion(output.transpose(-1, -2), target.long())
 
     def train(self, epoch: int, log_interval: int, pbar: tqdm, pbar_update: float):
         self.model.train()
@@ -258,9 +267,11 @@ class Main:
             data = data.transpose(-1, -2)
             print(f"input:\n{data.size()}")
 
+            print(f"target size:\n{target.size()}")
             # """
             # TODO: fix tgt input: AssertionError: was expecting embedding dimension of 256, but got 26
             #       in TransformerDecoder (Embedding layer)
+            #       ??GO LINEAR (B, tgtSEQ, 1) -> (B, tgtSEQ, 256)??
             # """
 
             output = self.model(data, target)
