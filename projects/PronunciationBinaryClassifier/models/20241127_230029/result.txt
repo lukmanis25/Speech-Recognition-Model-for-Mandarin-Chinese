@@ -1,0 +1,12 @@
+Word a0: Accuracy = 0.50
+Word a1: Accuracy = 0.91
+Word a2: Accuracy = 0.67
+Word a3: Accuracy = 0.87
+Word a4: Accuracy = 0.59
+Word a5: Accuracy = 0.68
+Word a6: Accuracy = 0.71
+Word a7: Accuracy = 0.60
+Word a8: Accuracy = 0.83
+Word a9: Accuracy = 0.62
+Word a10: Accuracy = 0.68
+Word a100: Accuracy = 0.77
