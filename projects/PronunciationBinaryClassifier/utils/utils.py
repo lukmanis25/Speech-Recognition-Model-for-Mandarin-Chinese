@@ -109,3 +109,4 @@ def save_model_info(model, save_dir):
         model.summary(print_fn=lambda x: f.write(x + "\n"))  
         f.write("\nModel Configuration:\n")
         f.write(str(model.get_config()))
+        

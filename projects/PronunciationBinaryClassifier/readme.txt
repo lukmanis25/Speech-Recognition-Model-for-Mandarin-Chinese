@@ -6,4 +6,6 @@ python main.py
 
 
 Podgląd na żywo treningu (trzba timestamp zmienić):
-tensorboard --logdir=models\20241127_224914\train_logs
+tensorboard --logdir=models\current\train_logs 
+
+q + enter aby zakończyć trening i wykonać test
