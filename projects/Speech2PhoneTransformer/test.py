@@ -11,12 +11,20 @@ from training import N_TOKENS
 
 
 class Main:
-    def __init__(self, model_path: pathlib.Path, n_inputs: int, n_hidden: int, n_layers: int, batch_size: int):
+    def __init__(self, model_path: pathlib.Path, n_inputs: int=256, n_hidden: int=64, n_layers: int=2, batch_size: int=200):
+        # select device
+        print(torch.version.cuda)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(self.device)
+
         print("generating index")
         data_handler = DataHandler(
-            phone_set_path=pathlib.Path("AISHELL-3/phone-set.txt"),
-            train_path=pathlib.Path("AISHELL-3/train/train_content.txt"),
-            test_path=pathlib.Path("AISHELL-3/test/test_content.txt")
+            phone_set_path=pathlib.Path("../../data/AISHELL-3/phone-set.txt"),
+            train_path=pathlib.Path("../../data/AISHELL-3/train/train_content.txt"),
+            test_path=pathlib.Path("../../data/AISHELL-3/test/test_content.txt"),
+            train_pickle=pathlib.Path("../../data/AISHELL-3/train_pickle.pkl"),
+            valid_pickle=pathlib.Path("../../data/AISHELL-3/valid_pickle.pkl"),
+            test_pickle=pathlib.Path("../../data/AISHELL-3/test_pickle.pkl")
         )
         test_set = data_handler.get_set("test")
 
@@ -65,8 +73,8 @@ class Main:
     def load_model(self, model_path: pathlib.Path):
         checkpoint = torch.load(model_path) # str(model_path)
         self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        # self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         self.epoch = checkpoint['epoch']
         self.loss = checkpoint['loss']
         print("loaded the model successfully")
@@ -75,7 +83,30 @@ class Main:
         with torch.no_grad():
             # TODO: run model.recognize on test split here
             # TODO: later on try with our data
-            pass
+            self.model.eval()
+            correct = 0
+            all = 0
+            for data, target in self.test_loader:
+                data = data.to(self.device)
+                target = target.to(self.device)
+                for transform in [self.transform_resample, self.transform_mfcc]:
+                    data = transform(data).to(self.device)
+                
+                data = data.transpose(-1, -2)
+
+                SOS = torch.zeros([1]).type(torch.int).to(self.device)
+                EOS = torch.ones([1]).type(torch.int).to(self.device)
+                output = self.model.recognize(data, SOS, EOS)
+                # get likely index
+                # pred = output.argmax(dim=-1)
+                # correct += pred.squeeze().eq(target).sum().item()
+                # pbar.update(pbar_update)
+            
+                print(target)
+                print(output)
+                break
+
+            print(f"\nTest Epoch: {epoch}\tAccuracy: {correct}/{len(self.test_loader.dataset)} ({100. * correct / len(self.test_loader.dataset):.0f}%)\n")
 
 
 if __name__ == "__main__":
@@ -83,5 +114,4 @@ if __name__ == "__main__":
     parser.add_argument("--model-path", type=lambda p: pathlib.Path(p).absolute(), dest="model_path",
                         help="optional path to previously saved model")
     args = parser.parse_args()
-    print(f"path: {args.model_path}")
-    Main()
+    Main(args.model_path)

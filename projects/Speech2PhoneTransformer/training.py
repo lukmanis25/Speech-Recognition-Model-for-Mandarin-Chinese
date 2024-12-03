@@ -117,21 +117,21 @@ class Main:
         # waveform, sample_rate, label, speaker_id, utterance_number = train_set[0]
         # endregion
 
-        print("generating index")
+        # print("generating index")
         data_handler = DataHandler(
             phone_set_path=pathlib.Path("../../data/AISHELL-3/phone-set.txt"),
             train_path=pathlib.Path("../../data/AISHELL-3/train/train_content.txt"),
             test_path=pathlib.Path("../../data/AISHELL-3/test/test_content.txt"),
-            train_pickle=pathlib.Path("../../data/AISHELL-3/train_pickle_mini.pkl"),
-            valid_pickle=pathlib.Path("../../data/AISHELL-3/valid_pickle_mini.pkl"),
-            test_pickle=pathlib.Path("../../data/AISHELL-3/test_pickle_mini.pkl")
+            train_pickle=pathlib.Path("../../data/AISHELL-3/train_pickle.pkl"),
+            valid_pickle=pathlib.Path("../../data/AISHELL-3/valid_pickle.pkl"),
+            test_pickle=pathlib.Path("../../data/AISHELL-3/test_pickle.pkl")
         )
         print("generating sets")
         train_set = data_handler.get_set("train")
         validation_set = data_handler.get_set("validate")
         # test_set = data_handler.get_set("test")
         _, sample_rate, _ = train_set[0]
-        print("done generating sets")
+        # print("done generating sets")
 
         self.loss_criterion = nn.CrossEntropyLoss(ignore_index=data_handler.index.phon2idx[PADDING])
         # region sorting labels xd??
@@ -256,18 +256,18 @@ class Main:
 
             # apply transform and model on whole batch directly on device
             for transform in [self.transform_resample, self.transform_mfcc]:
-                print(f"input:\n{data.size()}")
+                # print(f"input:\n{data.size()}")
                 data = transform(data).to(self.device)
             # after transforms:
             # data.size() = (B, MFCC_FEATS, S) // Bach_size, Mfcc_features, Sequence_length (S is lower after downsampling)
 
             # print(f"shape of mfcc: {tuple(data.size())}")
 
-            print(f"input:\n{data.size()}")
+            # print(f"input:\n{data.size()}")
             data = data.transpose(-1, -2)
-            print(f"input:\n{data.size()}")
+            # print(f"input:\n{data.size()}")
 
-            print(f"target size:\n{target.size()}")
+            # print(f"target size:\n{target.size()}")
             # """
             # TODO: fix tgt input: AssertionError: was expecting embedding dimension of 256, but got 26
             #       in TransformerDecoder (Embedding layer)
@@ -275,10 +275,10 @@ class Main:
             # """
 
             output = self.model(data, target)
-            print(f"output:\n{output.size()}")
+            # print(f"output:\n{output.size()}")
 
             loss = self.loss_fn(output, target)
-            print(f"loss:\n{loss}")
+            # print(f"loss:\n{loss}")
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -295,7 +295,7 @@ class Main:
             # update progress bar
             pbar.update(pbar_update)
 
-            raise Exception("abort")
+            # raise Exception("abort")
             # region save
             # record loss
             # if losses[-1] < best_loss[-1]:
@@ -337,20 +337,22 @@ class Main:
 
         self.model.eval()
         correct = 0
-        for data, target in self.validate_loader_loader:
+        for data, target in self.validate_loader:
             data = data.to(self.device)
             target = target.to(self.device)
             for transform in [self.transform_resample, self.transform_mfcc]:
                 data = transform(data).to(self.device)
             
-            output = self.model(data)
+            data = data.transpose(-1, -2)
+
+            output = self.model(data, target)
             # get likely index
             pred = output.argmax(dim=-1)
             correct += pred.squeeze().eq(target).sum().item()
 
             pbar.update(pbar_update)
         
-        print(f"\nTest Epoch: {epoch}\tAccuracy: {correct}/{len(self.test_loader.dataset)} ({100. * correct / len(self.test_loader.dataset):.0f}%)\n")
+        print(f"\nTest Epoch: {epoch}\tAccuracy: {correct}/{len(self.validate_loader.dataset)} ({100. * correct / len(self.validate_loader.dataset):.0f}%)\n")
 
     def run(self):
         log_interval = 20

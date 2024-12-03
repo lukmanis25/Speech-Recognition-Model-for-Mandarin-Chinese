@@ -93,19 +93,22 @@ class PinyinTransformer(nn.Transformer):
         output = self.decoder_lin(output)
         return F.log_softmax(output, dim=-1)
 
-    def recognize(self, src, SOS: torch.Tensor, EOS: torch.Tensor, topk = 1):
+    def recognize(self, src, SOS: torch.Tensor = torch.zeros([0,0]).type(torch.int), EOS: torch.Tensor = torch.ones([0,0]).type(torch.int), topk = 1):
         """
         https://github.com/foamliu/Speech-Transformer/blob/master/transformer/transformer.py#L38
         https://github.com/foamliu/Speech-Transformer/blob/master/transformer/decoder.py#130
         """
         # TODO: rozpisać z rozmiarami tensorow i zweryfikowac logike
         memory = self.encoder(src, mask=None)
-        # tgt = torch.values_copy(SOS)
-        decoder_output = torch.values_copy(SOS).unsqueeze(-1)
+        decoder_output = SOS # SOS.detach().clone()
+        decoder_output = decoder_output.unsqueeze(-1)
 
         maxlen = memory.size(0) # length of encoder output sequence
         for i in range(maxlen):
+            # print(decoder_output.size()) # torch.Size([1])
             target_emb = self.embedding(decoder_output)
+            # print(target_emb.size()) # torch.Size([1, 256])
+            # print(memory.size()) # torch.Size([200, 13, 256])
             output = self.decoder(target_emb, memory)
             output = self.decoder_lin(output)
             output = torch.topk(output, topk)

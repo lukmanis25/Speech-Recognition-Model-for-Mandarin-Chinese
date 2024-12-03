@@ -71,11 +71,11 @@ class DataHandler:
         else:
             # load a dataset split with load_dataset
             if set_name == "test":
-                data_set = load_dataset("shenberg1/aishell3", split=set_name)["audio"][:400]
+                data_set = load_dataset("shenberg1/aishell3", split=set_name)["audio"]
             
             else:
                 # manually split train split to (training, validation)
-                data_set = load_dataset("shenberg1/aishell3", split="train")["audio"][:400]
+                data_set = load_dataset("shenberg1/aishell3", split="train")["audio"]
                 df = pd.DataFrame(data_set)
                 df = np.split(df.sample(frac=1, random_state=0), [int(.75*len(df))])[0 if set_name == "train" else 1]
                 data_set = df.to_dict('records')
@@ -106,10 +106,10 @@ class DataHandler:
             targets += [torch.tensor(self.wav2seq[label]).type(torch.int64)]
 
         # Group the list of tensors into a batched tensor
-        print("tensors.size():")
-        print([tsr.size() for tsr in tensors[:7]])
-        print("targets.size():")
-        print([tgt.size() for tgt in targets[:7]])
+        # print("tensors.size():")
+        # print([tsr.size() for tsr in tensors[:7]])
+        # print("targets.size():")
+        # print([tgt.size() for tgt in targets[:7]])
 
         # tensors.size():
         # [118784, 74373, 82908, 318175, 102477, 87210, 98789]
@@ -119,11 +119,11 @@ class DataHandler:
         tensors = pad_sequence(tensors, batch_first=True).double()
         targets = pad_sequence(targets, batch_first=True, padding_value=self.index.phon2idx[PADDING]).int()
 
-        print("\napplied padding\n")
-        print("tensors.size():")
-        print([tsr.size() for tsr in tensors[:7]])
-        print("targets.size():")
-        print([tgt.size() for tgt in targets[:7]])
+        # print("\napplied padding\n")
+        # print("tensors.size():")
+        # print([tsr.size() for tsr in tensors[:7]])
+        # print("targets.size():")
+        # print([tgt.size() for tgt in targets[:7]])
         return tensors, targets
 
 
