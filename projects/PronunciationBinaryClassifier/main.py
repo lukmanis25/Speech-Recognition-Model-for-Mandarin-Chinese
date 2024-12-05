@@ -23,10 +23,10 @@ label_dir = '../../recordings_with_tones.csv'
 audio_dir = '../../recordings/stageI'
 data_dir = "data"
 load_data_from_file = True  # Ustaw na False, aby przetworzyć dane dźwięke na nowo, na True, aby je załadować z pliku
-load_dir = "data/20241203_205926"
+load_dir = "data/20241205_213929"
 model_dir = "models"
 
-input_shape = (141, 13, 1) #(13, 200, 1) 
+input_shape = (63, 13, 1) #wcześniej było (13, 200, 1) 
 word_index_to_name = {
     0: 'a0', 1: 'a1', 2: 'a2', 3: 'a3', 4: 'a4',
     5: 'a5', 6: 'a6', 7: 'a7', 8: 'a8', 9: 'a9',
@@ -134,6 +134,7 @@ def get_model(num_words=12, embedding_dim=10):
     embedding = Flatten()(embedding)
     x = Concatenate()([x, embedding])
     x = Dense(256, activation='relu')(x) 
+    x = Dense(128, activation='relu')(x) 
     x = Dropout(0.5)(x)
     output = Dense(1, activation='sigmoid')(x)
     model = Model(inputs=[input_audio, input_word], outputs=output)
