@@ -1,10 +1,10 @@
 import os
 import numpy as np
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
 from tf_keras import Input, Model
 from tf_keras.src.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint, Callback
-from tf_keras.src.layers import Conv2D, MaxPooling2D, Flatten, Embedding, Concatenate, Dense, Dropout
+from tf_keras.src.layers import Conv2D, MaxPooling2D, Flatten, Embedding, Concatenate, Dense, Dropout, BatchNormalization, GlobalAveragePooling2D
 from tf_keras.src.optimizers import Adam
 from keras.src.saving import load_model
 
@@ -23,18 +23,23 @@ label_dir = '../../recordings_with_tones.csv'
 audio_dir = '../../recordings/stageI'
 data_dir = "data"
 load_data_from_file = True  # Ustaw na False, aby przetworzyć dane dźwięke na nowo, na True, aby je załadować z pliku
-load_dir = "data/20241205_213929"
+load_dir = "data/a100_20241214_205334/spectrogram_augmented"
 model_dir = "models"
 
-input_shape = (63, 13, 1) #wcześniej było (13, 200, 1) 
+#input_shape =  (128, 72, 3)#(72, 13, 1)#(128, 72, 3)#(128, 64, 1)#(64, 13, 1) #(72, 13, 1) #(63, 13, 1) #wcześniej było (13, 200, 1) 
+input_shape = (128, 66, 3)
+one_word_model = True
 word_index_to_name = {
-    0: 'a0', 1: 'a1', 2: 'a2', 3: 'a3', 4: 'a4',
-    5: 'a5', 6: 'a6', 7: 'a7', 8: 'a8', 9: 'a9',
-    10: 'a10', 11: 'a100'
+    0: 'a10'
 }
+# word_index_to_name = {
+#     0: 'a0', 1: 'a1', 2: 'a2', 3: 'a3', 4: 'a4',
+#     5: 'a5', 6: 'a6', 7: 'a7', 8: 'a8', 9: 'a9',
+#     10: 'a10', 11: 'a100'
+# }
 
-learning_rate=1e-3
-batch_size=16
+learning_rate=1e-4 #1e-3 1e-4
+batch_size=32
 
 patience=20
 min_delta=0.0001
@@ -115,25 +120,17 @@ def get_model(num_words=12, embedding_dim=10):
     input_word = Input(shape=(1,), dtype='int32') 
     x = Conv2D(64, (3,3), activation='relu', padding='same')(input_audio)
     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    #x = Dropout(0.4)(x)
     x = Conv2D(128, (3,3), activation='relu', padding='same')(x)
     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    #x = Dropout(0.4)(x)
-    x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    #x = Dropout(0.4)(x)
-    x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    #x = Dropout(0.4)(x)
-    x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    #x = Dropout(0.4)(x)
-    
     x = Flatten()(x)
     embedding = Embedding(input_dim=num_words, output_dim=embedding_dim, input_length=1)(input_word)
     embedding = Flatten()(embedding)
     x = Concatenate()([x, embedding])
-    x = Dense(256, activation='relu')(x) 
+    x = Dense(1024, activation='relu')(x) 
     x = Dense(128, activation='relu')(x) 
     x = Dropout(0.5)(x)
     output = Dense(1, activation='sigmoid')(x)
@@ -141,6 +138,64 @@ def get_model(num_words=12, embedding_dim=10):
     model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
+
+def get_one_word_model(num_words=12, embedding_dim=10):
+    input_audio = Input(shape=input_shape)
+    input_word = Input(shape=(1,), dtype='int32') 
+    x = Conv2D(64, (3,3), activation='relu', padding='same')(input_audio)
+    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
+    x = Conv2D(128, (3,3), activation='relu', padding='same')(x)
+    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
+    x = Flatten()(x)
+    x = Dense(1024, activation='relu')(x) 
+    x = Dense(128, activation='relu')(x) 
+    x = Dropout(0.5)(x)
+    output = Dense(1, activation='sigmoid')(x)
+    model = Model(inputs=[input_audio, input_word], outputs=output)
+    model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
+    return model
+
+# def get_one_word_model(num_words=12, embedding_dim=10):
+#     input_audio = Input(shape=input_shape)
+#     input_word = Input(shape=(1,), dtype='int32') 
+
+#     # Warstwy konwolucyjne z BatchNormalization i regularyzacją L2
+#     x = Conv2D(64, (3,3), activation='relu', padding='same', kernel_regularizer=l2(0.01))(input_audio)
+#     x = BatchNormalization()(x)
+#     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
+    
+#     x = Conv2D(128, (3,3), activation='relu', padding='same', kernel_regularizer=l2(0.01))(x)
+#     x = BatchNormalization()(x)
+#     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
+    
+#     x = Conv2D(128, (3, 3), activation='relu', padding='same', kernel_regularizer=l2(0.01))(x)
+#     x = BatchNormalization()(x)
+#     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
+    
+#     x = Conv2D(128, (3, 3), activation='relu', padding='same', kernel_regularizer=l2(0.01))(x)
+#     x = BatchNormalization()(x)
+#     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
+
+#     # GlobalAveragePooling zamiast Flatten
+#     x = Flatten()(x)
+
+#     # Warstwa Dense z regularyzacją i Dropout
+#     x = Dense(1024, activation='relu', kernel_regularizer=l2(0.01))(x) 
+#     x = Dense(128, activation='relu', kernel_regularizer=l2(0.01))(x) 
+#     x = Dropout(0.5)(x)
+
+#     # Warstwa wyjściowa
+#     output = Dense(1, activation='sigmoid')(x)
+
+    # Tworzenie i kompilacja modelu
+    model = Model(inputs=[input_audio, input_word], outputs=output)
+    model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
+
+    return model
 
 X_train, X_val, X_test, word_train, word_val, word_test, y_train, y_val, y_test = (None,)*9
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -198,7 +253,7 @@ cur_train_logs_path = os.path.join(model_cur_dir, 'train_logs')
 os.makedirs(cur_train_logs_path, exist_ok=True)
 # Build the model
 #model = build_pronunciation_model_with_word_info()
-model = get_model()
+model = get_model() if not one_word_model else get_one_word_model()
 save_model_info(model, os.path.join(model_save_dir, 'model_info.txt'))
 best_checkpoint_dir= os.path.join(model_save_dir, f'best_checkpoint_model.h5')
 
@@ -228,6 +283,7 @@ predicted_labels = (predictions > 0.5).astype(int)  # Threshold at 0.5
 
 
 word_accuracies = {}
+word_f1_scores = {}
 
 # Get the unique word indices
 unique_words = np.unique(word_test)
@@ -243,11 +299,14 @@ for word in unique_words:
     # Compute accuracy for this word
     word_accuracy = accuracy_score(y_true_word, y_pred_word)
     word_accuracies[word] = word_accuracy
+    word_f1 = f1_score(y_true_word, y_pred_word, average='weighted')
+    word_f1_scores[word] = word_f1
 
 # Print accuracy for each word using the name mapping
 with open(os.path.join(model_save_dir, f'result.txt'), "w") as file:
     for word_index, accuracy in word_accuracies.items():
         word_name = word_index_to_name[word_index]
-        result = f"Word {word_name}: Accuracy = {accuracy:.2f}"
+        f1_score_value = word_f1_scores[word_index]
+        result = f"Word {word_name}: Accuracy = {accuracy:.2f}, F1 Score = {f1_score_value:.2f}"
         print(result)
         file.write(result + "\n")
