@@ -1,0 +1,146 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Journal Article
+% LaTeX Template
+% Version 2.0 (February 7, 2023)
+%
+% This template originates from:
+% https://www.LaTeXTemplates.com
+%
+% Author:
+% Vel (vel@latextemplates.com)
+%
+% License:
+% CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/)
+%
+% NOTE: The bibliography needs to be compiled using the biber engine.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[
+	a4paper, % Paper size, use either a4paper or letterpaper
+	10pt, % Default font size, can also use 11pt or 12pt, although this is not recommended
+	unnumberedsections, % Comment to enable section numbering
+	twoside, % Two side traditional mode where headers and footers change between odd and even pages, comment this option to make them fixed
+]{LTJournalArticle}
+
+\addbibresource{sample.bib} % BibLaTeX bibliography file
+
+% \usepackage{xcolor}
+
+\runninghead{Chinese Pronunciation Evaluation} % A shortened article title to appear in the running head, leave this command empty for no running head
+
+\footertext{\textit{Politechnika Gdańska} (2024)} % Text to appear in the footer, leave this command empty for no footer text
+
+\setcounter{page}{1} % The page number of the first page, set this to a higher number if the article is to be part of an issue or larger work
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\title{A Speech Recognition Model for Mandarin Chinese Pronunciation Evaluation} % Article title, use manual lines breaks (\\) to beautify the layout
+
+% Authors are listed in a comma-separated list with superscript numbers indicating affiliations
+% \thanks{} is used for any text that should be placed in a footnote on the first page, such as the corresponding author's email, journal acceptance dates, a copyright/license notice, keywords, etc
+\author{%
+Jakub Kiliańczyk, % 184301 (kierownik zespołu)
+Jakub Kwiatkowski, % 184348 
+Anna Strzelecka, \\ % 201986
+Dawid Migowski, % 184819
+Łukasz Smoliński % 184306
+% \\ \textit{\color{red} ? Opiekun: Adam Przybyłek }
+}
+
+
+% Affiliations are output in the \date{} command
+\date{\footnotesize{Politechnika Gdańska}}
+
+% Full-width abstract
+\renewcommand{\maketitlehookd}{%
+	\begin{abstract}
+		\noindent Nasz projekt jest bardzo fajny i ciekawy. W dzisiejszych czasach AI jest do wszystkiego, dlatego zdecydowaliśmy się zastosować sieci neuronowe do problemu sprawdzania poprawności wymowy i intonacji Mandaryńskiego.
+	\end{abstract}
+}
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\maketitle % Output the title section
+
+%----------------------------------------------------------------------------------------
+%	ARTICLE CONTENTS
+%----------------------------------------------------------------------------------------
+
+\section{Introduction}
+
+Na podstawie naszych źródeł XYZ zdecydowaliśmy się zrealizować zadanie za pomocą sieci konwolucyjnych (sPlOtOwYcH)
+oraz modelu Transformer. % Porównaliśmy wyniki wytrenowanych modeli i wyszło nam to to i siamto.
+Wykorzystaliśmy dane ze zbioru [AISHELL-3] oraz własne dane zebrane drogą eksperymentu, który polegał na bla bla bla.
+Aby lepiej wykorzystać potencjał danych uczących zastosowaliśmy cośtam i jeszcze cośtam.
+Tak btw to nw czy to piszemy po polsku czy angielsku, może na początek niech zostanie po pl i się potem przetłumaczy.
+
+%------------------------------------------------
+
+\section{Related Work}
+
+Przeprowadziliśmy SLR i znaleźliśmy kilka rozwiązań głównie pozwalających na jedynie połowiczną realizację założeń tego projektu.
+Tj. albo sam goły ASR sprowadzający się do sprawdzania wymowy, albo rozpoznawanie tonu niezależnie od artykulacji.
+BTW Jakby jakieś elementy typu podsekcje, listy, równania itd. były potrzebne to polecam kopiować z template.tex.
+
+%------------------------------------------------
+
+\section{Approach}
+
+Tutaj opisujemy nasze podejścia dużo bardziej szczegółowo, każdy sobie rzepkę skrobie
+
+\subsection{Model per słowo}
+
+Osobne modele sieci konwolucyjnych do każdego słowa.
+Można napisać jak robiliśmy na początku i co potem zmienialiśmy żeby lepiej zadziałało.
+
+\subsection{One model to rule them all}
+
+Sieć konwolucyjna wykorzystująca embedding (pl: WSAD xD) żeby działać na wszystkich słowach.
+
+\subsection{Model do tonów by Dawid}
+
+Opis jak model Dawida działa.
+
+\subsection{Transformer}
+
+Opis jak model Kuby Ki działa
+
+%------------------------------------------------
+
+\section{Results}
+
+Wyniki były takie i śmakie. Porównujemy wyniki różnych podejść i modeli, może z różnymi hiperparametrami żeby się bardziej rozpisać.
+
+%------------------------------------------------
+
+\section{Discussion}
+
+No ogólnie to widać że jest potencjał, przyszłe pokolenia badaczy mogą podnieść temat tu gdzie my go odkładamy i pewnie wyniki będą coraz lepsze.
+
+%------------------------------------------------
+
+\section{Conclusion}
+
+To i to wyszło, co innego nie wyszło z takich a takich przyczyn.
+
+\textbf{\color{red} cytowania dodajemy w sample.bib (wyżej jest to dołączane znaczikiem addbibresource)}
+\textbf{\color{red} żeby się wyświetliły na dole trzeba gdzieś w tekście umieścić autocite, jak np. tutaj \autocite{TODO:2024}}
+
+%----------------------------------------------------------------------------------------
+%	 REFERENCES
+%----------------------------------------------------------------------------------------
+
+\printbibliography % Output the bibliography
+
+%----------------------------------------------------------------------------------------
+
+\end{document}
