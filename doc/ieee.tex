@@ -1,0 +1,208 @@
+\documentclass[conference]{IEEEtran}
+% \IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{A Speech Recognition Model for Mandarin Chinese Pronunciation Evaluation}
+
+\author{\IEEEauthorblockN{1\textsuperscript{st} Jakub Kiliańczyk}
+\IEEEauthorblockA{\textit{Gdańsk University of Technology} \\
+% \textit{name of organization (of Aff.)}\\
+Gdańsk, Poland}
+% \\ jacky8203@proton.me
+% }
+\and
+\IEEEauthorblockN{2\textsuperscript{nd} Jakub Kwiatkowski}
+\IEEEauthorblockA{\textit{Gdańsk University of Technology} \\
+% \textit{name of organization (of Aff.)}\\
+Gdańsk, Poland}
+\and
+\IEEEauthorblockN{3\textsuperscript{rd} Anna Strzelecka}
+\IEEEauthorblockA{\textit{Gdańsk University of Technology} \\
+% \textit{name of organization (of Aff.)}\\
+Gdańsk, Poland}
+\and
+\IEEEauthorblockN{4\textsuperscript{th} Dawid Migowski}
+\IEEEauthorblockA{\textit{Gdańsk University of Technology} \\
+% \textit{name of organization (of Aff.)}\\
+Gdańsk, Poland}
+\and
+\IEEEauthorblockN{5\textsuperscript{th} Łukasz Smoliński}
+\IEEEauthorblockA{\textit{Gdańsk University of Technology} \\
+% \textit{name of organization (of Aff.)}\\
+Gdańsk, Poland}
+}
+
+\maketitle
+
+\begin{abstract}
+In recent years many Automatic Speech Recognition (ASR) solutions have been designed based on artificial intelligence algorithms. The Chinese language poses relatively new challenges when it comes to ASR or Mispronunciation Detection and Diagnosis (MDD) as the meaning of each word depends not only on pronunciation, but also on tone of speech. In order to correctly asses one's speech, both features have to be considered.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Automatic Speech Recognition, Mispronunciation Detection and Diagnosis, Convolutional Neural Network, Transformer
+\end{IEEEkeywords}
+
+\section{Introduction}
+In order to train new Speech Recognition models, we used AISHELL-3 \cite{shi2021aishell3multispeakermandarintts} dataset and a self-made one consisting of our university's students' recordings. We developed and compared several approaches for the tasks of Speech Recognition and Scoring and Tone Recognition.
+
+\section{Related Work}
+We conducted a literature review in search of existing research and solutions for the tasks of pronunciation and tone detection for Mandarin Chinese. We assumed criteria to look for Neural Network models trained with limited data, published in years 2014-2024 in english. We based our research on the following keywords: ``Speech Recognition'', ``Deep Learning'', ``Pronunciation Evaluation'' and fetched a total of 878 research papers from several databases. After eliminating duplicates and assessing the titles and abstracts we chose 12 most suiting articles for further reading. \\
+After the literature review, our first notion was the limitation of publicly available datasets, especially regarding the subject of Tone Classification (TC). \cite{warden2018speechcommandsdatasetlimitedvocabulary} mentions difficulties in finding and accessing datasets for ASR in Chinese and suggests a new one for Keyword Detection.
+
+\section{Approach}
+We decided to first develop separate CNN models for the tasks of Pronunciation Evaluation (PE) and Tone Classification. Afterwards we attempted to solve both of these tasks using one, more complex architecture.
+
+\subsection{Data Processing}
+In order to ensure good training quality of our dataset we applied some preprocessing techniques. Firstly, we removed the incorrect recordings, for example only constituting of noise, or ones that didn't suffice the length requirements.
+Later, we trimmed the silent parts at the edges of the recordings and applied noise-reduction filters. Finally, we normalized the volume to achieve voice intensity consistency. \\
+We split the dataset into training, validation and test sets and balanced representation of positive and negative cases for each class. We conducted data augmentation on the training set. \\
+After obtaining the spectrograms required as an input for our models, we observed a significant improvement in the training.
+
+\subsection{CNN for Tone Recognition}
+We have prepared a multilayer CNN to classify the tone of speech phonemes into one of 4 defined tones (1 to 4, not counting the neutral one, denoted by 0). It consists of convolution layers, batch normalization, activation functions and pooling layers.
+The input layer takes two-dimensional data and passes the output to 4 convolution blocks with the number of filters ascending through values: 64, 128, 256, 512 and altering steps, which allow hierarchical feature extraction. Finally we apply Data Flattening combined with 2 Fully Connected Layers (FCLs) of 1024 units followed by a softmax layer to obtain probabilities.
+For this model we use the Stochastic gradient descent optimization algorithm \cite{sung2020ssgdsymmetricalstochasticgradient} with a low learning rate and special weights applied for classes with inconsistent representation in training data.
+We used techniques of early stopping and saving checkpoints to avoid overfitting and ensure the best results are not lost.
+
+\subsection{CNN for Pronunciation Evaluation}
+For this task we used the numeric words from 0 to 10 and 100 from our Mandarin Chinese audio dataset with labels provided by a native Chinese speaking expert in the field. The network takes a 3-channel spectrogram as an input. Similarly to our Tone Recognition model, the architecture is based on convolution and pooling layers.
+The number of convolution filters grows to 128. Thanks to the MaxPooling layers, the model can be trained to focus on the meaningful parts of the signal, ignoring the noise. After extracting the features with convolutional blocks, we use a Flatten layer.
+Afterwards the tensors are passed to FCLs with 1024 and 128 units in this order and ReLU activation function. In order to avoid overfitting we use a Dropout layer that randomly disables half of the neurons, improving the model's generalization capability.
+In the end there is a 1-unit FCL with a sigmoid activation function, responsible for outputting a probability of given word, allowing binary classification. During the training we use the Adam optimizer \cite{Kingma2014AdamAM} with Binary Cross-Entropy loss function.
+
+\subsection{Speech-Transformer for complete ASR}
+With this last model, using an implementation of \cite{vaswani2023attentionneed,8462506}, modified to enable training with \cite{shi2021aishell3multispeakermandarintts} and finetuning with our dataset, we attempted solving both tasks of Pronunciation Evaluation and Tone Classification.
+The model would originally generate transcription sequences based on processed audio input. In case of Mandarin Chinese, the transcription can be represented in traditional alphabet or in pinyin notation, which consists of syllables written with latin letters and denotes the tone of each phone.
+The pinyin is popular for learning purposes for foreigners who don't know the Chinese alphabet. It also enables us to simply split the phoneme into pronunciation and tone information.
+The model has been configured with default hyperparameter values as in \cite{8462506}. Due to lack of specific transcriptions in our dataset (we were limited to pronunciation scores and tone labels) the training split for the finetuning part had to be limited to correct recordings. % the minority unfortunately
+For the testing, however, we used balanced amount of correct and incorrect recordings for pronunciation evaluation and all the recording for tone classification.
+
+\section{Results}
+
+\subsection{CNN for Pronunciation Evaluation}
+This paragraph will be filled in the final version of this work.
+
+\subsection{Speech-Transformer - Pronunciation Evaluation}
+We measured this model with precision, recall and F1-score metrics. The results are given in the table ``Tab.~\ref{tab_STPE}''. We have also plotted a confusion matrix ``Fig.~\ref{fig_STPE}''.
+For this task, we balanced test data to 477 correct and incorrect samples.
+
+\begin{table}[hbtp]
+\caption{Speech-Transformer - Pronunciation Evaluation Metrics}
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Metric} & {\textbf{Value}} \\
+% \cline{2-4} 
+% \textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
+\hline
+true positive & 456 \\
+\hline
+false positive & 266 \\
+\hline
+true negative & 211 \\
+\hline
+false negative & 21 \\
+\hline
+precision & 0.63 \\
+\hline
+recall & 0.96 \\
+\hline
+F1-score & 0.76 \\
+\hline
+\end{tabular}
+\label{tab_STPE}
+\end{center}
+\end{table}
+
+\begin{figure}[hbtp]
+\centerline{\includegraphics[width=0.5\textwidth]{Fig_STPE.png}}
+\caption{Speech-Transformer - Confusion Matrix for PE}
+\label{fig_STPE}
+\end{figure}
+
+\subsection{Speech-Transformer - Tone Classification}
+Before the finetuning, this model would achieve at most 50\% accuracy, meaning half of the times it would guess one of the 4 available tones (excluding the neutral tone).
+Afterwards it actually dropped below that value, because it was not trained separately for this task and two tones out of four are underrepresented within the numeric words from 1 to 10, which can be observed on a confusion matrix ``Fig.~\ref{fig_STTC}''.
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Fig_STTC.png}}
+    \caption{Speech-Transformer - Confusion Matrix for TC}
+    \label{fig_STTC}
+\end{figure}
+
+\section{Discussion}
+This paragraph will be filled in the final version of this work.
+
+\section{Conclusion}
+This paragraph will be filled in the final version of this work.
+
+% \subsection{Some Common Mistakes}\label{SCM}
+% \begin{itemize}
+% \item The word ``data'' is plural, not singular.
+% \item The subscript for the permeability of vacuum $\mu_{0}$, and other common scientific constants, is zero with subscript formatting, not a lowercase letter ``o''.
+% \item In American English, commas, semicolons, periods, question and exclamation marks are located within quotation marks only when a complete thought or name is cited, such as a title or full quotation. When quotation marks are used, instead of a bold or italic typeface, to highlight a word or phrase, punctuation should appear outside of the quotation marks. A parenthetical phrase or statement at the end of a sentence is punctuated outside of the closing parenthesis (like this). (A parenthetical sentence is punctuated within the parentheses.)
+% \item A graph within a graph is an ``inset'', not an ``insert''. The word alternatively is preferred to the word ``alternately'' (unless you really mean something that alternates).
+% \item Do not use the word ``essentially'' to mean ``approximately'' or ``effectively''.
+% \item In your paper title, if the words ``that uses'' can accurately replace the word ``using'', capitalize the ``u''; if not, keep using lower-cased.
+% \item Be aware of the different meanings of the homophones ``affect'' and ``effect'', ``complement'' and ``compliment'', ``discreet'' and ``discrete'', ``principal'' and ``principle''.
+% \item Do not confuse ``imply'' and ``infer''.
+% \item The prefix ``non'' is not a word; it should be joined to the word it modifies, usually without a hyphen.
+% \item There is no period after the ``et'' in the Latin abbreviation ``et al.''.
+% \item The abbreviation ``i.e.'' means ``that is'', and the abbreviation ``e.g.'' means ``for example''.
+% \end{itemize}
+% An excellent style manual for science writers is \cite{b7}.
+
+% \subsection{Figures and Tables}
+% \paragraph{Positioning Figures and Tables} Place figures and tables at the top and 
+% bottom of columns. Avoid placing them in the middle of columns. Large 
+% figures and tables may span across both columns. Figure captions should be 
+% below the figures; table heads should appear above the tables. Insert 
+% figures and tables after they are cited in the text. Use the abbreviation 
+% ``Fig.~\ref{fig}'', even at the beginning of a sentence.
+
+% \begin{table}[htbp]
+% \caption{Table Type Styles}
+% \begin{center}
+% \begin{tabular}{|c|c|c|c|}
+% \hline
+% \textbf{Table}&\multicolumn{3}{|c|}{\textbf{Table Column Head}} \\
+% \cline{2-4} 
+% \textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
+% \hline
+% copy& More table copy$^{\mathrm{a}}$& &  \\
+% \hline
+% \multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
+% \end{tabular}
+% \label{tab1}
+% \end{center}
+% \end{table}
+
+% \begin{figure}[hbtp]
+% \centerline{\includegraphics{fig1.png}}
+% \caption{Example of a figure caption.}
+% \label{fig}
+% \end{figure}
+
+% Figure Labels: Use 8 point Times New Roman for Figure labels. Use words 
+% rather than symbols or abbreviations when writing Figure axis labels to 
+% avoid confusing the reader. As an example, write the quantity 
+% ``Magnetization'', or ``Magnetization, M'', not just ``M''. If including 
+% units in the label, present them within parentheses. Do not label axes only 
+% with units. In the example, write ``Magnetization (A/m)'' or ``Magnetization 
+% \{A[m(1)]\}'', not just ``A/m''. Do not label axes with a ratio of 
+% quantities and units. For example, write ``Temperature (K)'', not 
+% ``Temperature/K''.
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEE_references.bib}
+
+\end{document}
