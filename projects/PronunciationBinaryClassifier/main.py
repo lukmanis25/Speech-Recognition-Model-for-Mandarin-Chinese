@@ -10,7 +10,7 @@ from tf_keras.src.optimizers import Adam
 from tf_keras.src.losses import binary_crossentropy, BinaryCrossentropy
 from tf_keras.src.models import load_model
 #from keras.src.saving import load_model
-
+import tensorflow as tf
 import os
 import numpy as np
 import pandas as pd
@@ -23,8 +23,11 @@ import threading
 from utils.utils import *
 from utils.InterruptTraining import InterruptTraining
 
+print("Available GPUs:")
+print(tf.config.list_physical_devices('GPU'))
+
 #PARAMS
-load_dir = "data/20250121_111131/spectrogram_augmented"
+load_dir = "data/a0_20250121_111131/spectrogram_augmented"
 model_dir = "models"
 
 
@@ -46,15 +49,9 @@ dropout=0.2
 smoothing=0.1
 acceptance_threshold=0.5
 
-def binary_crossentropy_with_label_smoothing(smoothing=0.1):
-    def loss(y_true, y_pred):
-        # Rzutowanie y_true na float32 w ramach forka tf_keras
-        y_true = cast(y_true, 'float32')  # Rzutowanie na typ zmiennoprzecinkowy
-        # Dodanie label smoothing
-        y_true_smoothed = y_true * (1 - smoothing) + smoothing / 2
-        # Obliczenie straty
-        return binary_crossentropy(y_true_smoothed, y_pred)
-    return loss
+patience=15
+min_delta=0
+
 
 def get_one_word_model(num_words=12, embedding_dim=10):
     input_audio = Input(shape=input_shape)
@@ -123,6 +120,7 @@ save_model_info(model, os.path.join(model_save_dir, 'model_info.txt'))
 best_checkpoint_dir= os.path.join(model_save_dir, f'best_checkpoint_model.h5')
 
 #Callbacks
+early_stopping = EarlyStopping(monitor='val_loss', patience=patience, min_delta=min_delta, mode='min', restore_best_weights=True) #prevent overfitting
 checkpoint = ModelCheckpoint(best_checkpoint_dir, save_best_only=True, monitor='val_loss', mode='min')
 tensorboard_callback = TensorBoard(log_dir=train_logs_path, histogram_freq=1)
 tensorboard_callback_cur = TensorBoard(log_dir=cur_train_logs_path, histogram_freq=1)
@@ -135,7 +133,7 @@ history = model.fit(
     epochs=100,  # Increased number of epochs to allow early stopping to work
     batch_size=batch_size,
     validation_data=([X_val, word_val], y_val),
-    callbacks=[tensorboard_callback, tensorboard_callback_cur, checkpoint, interrupt_callback]
+    callbacks=[tensorboard_callback, tensorboard_callback_cur, checkpoint, interrupt_callback, early_stopping]
 )
 
 #model.save(os.path.join(model_save_dir, f'model.h5'))
