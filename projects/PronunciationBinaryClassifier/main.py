@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from tf_keras import Input, Model
 from tf_keras.src.backend import cast
@@ -14,6 +14,8 @@ from tf_keras.src.models import load_model
 import os
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 from tf_keras.src.regularizers import l2
 from datetime import datetime
 import shutil
@@ -42,7 +44,7 @@ learning_rate=1e-4 #1e-3 1e-4
 batch_size=32
 dropout=0.2
 smoothing=0.1
-
+acceptance_threshold=0.5
 
 def binary_crossentropy_with_label_smoothing(smoothing=0.1):
     def loss(y_true, y_pred):
@@ -140,7 +142,7 @@ history = model.fit(
 load_model(best_checkpoint_dir)
 # Make predictions on the test set
 predictions = model.predict([X_test, word_test])
-predicted_labels = (predictions > 0.5).astype(int)  # Threshold at 0.5
+predicted_labels = (predictions > acceptance_threshold).astype(int)
 
 
 
@@ -164,6 +166,22 @@ for word in unique_words:
     word_f1 = f1_score(y_true_word, y_pred_word, average='weighted')
     word_f1_scores[word] = word_f1
 
+# Compute overall confusion matrix
+overall_confusion_matrix = confusion_matrix(y_test.flatten(), predicted_labels.flatten())
+
+# Reorder confusion matrix for Positive first
+reordered_matrix = overall_confusion_matrix[[1, 0], :][:, [1, 0]]
+
+# Save confusion matrix as an image
+plt.figure(figsize=(8, 6))
+sns.heatmap(reordered_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=["Predicted Positive", "Predicted Negative"], yticklabels=["Actual Positive", "Actual Negative"])
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+conf_matrix_path = os.path.join(model_save_dir, 'confusion_matrix.jpg')
+plt.savefig(conf_matrix_path)
+plt.close()
+
 with open(os.path.join(model_save_dir, f'result.txt'), "w") as file:
     for word_index, accuracy in word_accuracies.items():
         word_name = word_index_to_name[word_index]
@@ -171,9 +189,10 @@ with open(os.path.join(model_save_dir, f'result.txt'), "w") as file:
         result = f"Word {word_name}: Accuracy = {accuracy:.2f}, F1 Score = {f1_score_value:.2f}"
         print(result)
         file.write(result + "\n")
-
+        
 with open(os.path.join(model_save_dir, f'hparamas.txt'), "w") as file:
     file.write(f"batch size: {batch_size}" + "\n")
     file.write(f"learning rate: {learning_rate}" + "\n")
     file.write(f"dropout: {dropout}" + "\n")
-    file.write(f"dropout: {smoothing}" + "\n")
+    file.write(f"smooting: {smoothing}" + "\n")
+    file.write(f"acceptance threshold: {acceptance_threshold}" + "\n")
