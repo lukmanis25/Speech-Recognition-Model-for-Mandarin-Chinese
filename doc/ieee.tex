@@ -120,7 +120,7 @@ For this model we used the Stochastic gradient descent optimization algorithm \c
 We used techniques of early stopping and saving checkpoints to avoid overfitting and ensure the best results are not lost.
 
 \subsection{CNN for Pronunciation Evaluation}
-For this task we used the numeric words from 0 to 10 and 100 from our Mandarin chinese audio dataset with labels provided by a native Chinese speaking expert in the field. The network takes a 3-channel spectrogram as an input. Similarly to our Tone Recognition model, the architecture is based on convolution and pooling layers.
+For this task we used the numeric words from 0 to 10 and 100 from our Mandarin chinese audio dataset with labels provided by a native Chinese speaking expert in the field. For each word we trained a separate model, as the results for a single model trained on all the words haven't been satisfactory. The network takes a 3-channel spectrogram as an input. Similarly to our Tone Recognition model, the architecture is based on convolution and pooling layers.
 The number of convolution filters grows to 128. Thanks to the MaxPooling layers, the model's number of trainable parameters is reduced, alleviating the computational cost and risk of overfitting. After extracting the features with convolutional blocks, we use a Flatten layer.
 Afterwards the tensors are passed to FCLs with 1024 and 128 units in this order and ReLU activation function. In order to prevent overfitting we use a Dropout layer that randomly disables half of the neurons, improving the model's generalization capability.
 In the end there is a 1-unit FCL with a sigmoid activation function, responsible for outputting a probability of given word, allowing binary classification. During the training we use the Adam optimizer \cite{Kingma2014AdamAM} with Binary Cross-Entropy loss function.
@@ -164,12 +164,62 @@ For the testing, however, we used balanced amount of correct and incorrect recor
 
 \section{Results}
 
-\subsection{CNN for Pronunciation Evaluation}
-This paragraph will be filled in the final version of this work.
+\subsection{CNN for Tone Classification}
 
-\subsection{Speech-Transformer - Pronunciation Evaluation}
-We measured this model with precision, recall and F1-score metrics. The results are given in the table ``Tab.~\ref{tab_STPE}''. We have also plotted a confusion matrix ``Fig.~\ref{fig_STPE}''.
-For this task, we balanced test data to 477 correct and incorrect samples.
+The accuracy initially achieved with our model was around 0.50. After data preprocessing we were able to raise that score to 0.57.
+The results of this CNN are also presented in a form of a confusion matrix in 
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/ToneCNN_Matrix.png}}
+    \caption{CNN }
+    \label{fig_ToneCNN_Mat} % ``Fig.~\ref{fig_ToneCNN_Mat}''
+    \end{figure}
+
+\subsection{CNN - Confusion Matrix for Tone Classification}
+
+The results of a model trained for each word are presented in ``Tab.~\ref{tab_CNNPE_acc}''.
+
+\begin{table}[hbtp]
+    \caption{CNN - Pronunciation Evaluation Metrics}
+    \begin{center}
+    \begin{tabular}{|c|c|}
+    \hline
+    \textbf{Word} & {\textbf{Accuracy}} \\
+    \hline
+    a0 & 0.78 \\
+    \hline
+    a1 & 0.77 \\
+    \hline
+    a2 & 0.67 \\
+    \hline
+    a3 & 0.61 \\
+    \hline
+    a4 & 0.73 \\
+    \hline
+    a5 & 0.72 \\
+    \hline
+    a6 & 0.69 \\
+    \hline
+    a7 & 0.68 \\
+    \hline
+    a8 & 0.70 \\
+    \hline
+    a9 & 0.70 \\
+    \hline
+    a10 & 0.71 \\
+    \hline
+    a100 & 0.73 \\
+    \hline
+    \textbf{Average} & \textbf{0.7075} \\
+    \hline
+    \end{tabular}
+    \label{tab_CNNPE_acc}
+    \end{center}
+    \end{table}
+
+% \subsection{Speech-Transformer - Pronunciation Evaluation}
+\subsection{Speech-Transformer}
+We measured this model with an accuracy metric. The results are given in the table ``Tab.~\ref{tab_STPE}''. We have also plotted a confusion matrix ``Fig.~\ref{fig_STPE}''.
 
 \begin{table}[hbtp]
 \caption{Speech-Transformer - Pronunciation Evaluation Metrics}
@@ -180,19 +230,9 @@ For this task, we balanced test data to 477 correct and incorrect samples.
 % \cline{2-4} 
 % \textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
 \hline
-true positive & 456 \\
+Tone Classification Accuracy & 0.48 \\
 \hline
-false positive & 266 \\
-\hline
-true negative & 211 \\
-\hline
-false negative & 21 \\
-\hline
-precision & 0.63 \\
-\hline
-recall & 0.96 \\
-\hline
-F1-score & 0.76 \\
+Articulation Scoring Accuracy & 0.85 \\
 \hline
 \end{tabular}
 \label{tab_STPE}
@@ -205,7 +245,7 @@ F1-score & 0.76 \\
 \label{fig_STPE} % ``Fig.~\ref{fig_STPE}''
 \end{figure}
 
-\subsection{Speech-Transformer - Tone Classification}
+% \subsection{Speech-Transformer - Tone Classification}
 Before the finetuning, this model would achieve at most 50\% accuracy, meaning half of the times it would guess one of the 4 available tones (excluding the neutral tone).
 Afterwards it actually dropped below that value, because it was not trained separately for this task and two tones out of four are underrepresented within the numeric words from 1 to 10, which can be observed on a confusion matrix ``Fig.~\ref{fig_STTC}''.
 
@@ -216,10 +256,12 @@ Afterwards it actually dropped below that value, because it was not trained sepa
 \end{figure}
 
 \section{Discussion}
-This paragraph will be filled in the final version of this work.
+In the Pronunciation Scoring task, the Speech-Transformer has achieved a noticeably higher accuracy. Apart from significant difference of these networks, the Speech-Transformer has been pre-trained with \cite{shi2021aishell3multispeakermandarintts}. At this stage of research, accuracy of over 0.70 for a ten class problem is not a bad score. Ideally, the same result would be achieved with a single CNN for all the words.
+Another improvement would be to support multi-syllable words, which is currently possible only with the use of the Speech-Transformer as it's a sequence-processing-oriented approach.
+As per Tone Classification, the CNN has outperformed the Speech-Transformer. It's worth to note that in both cases the first two tones were likely to get confused. This can be observed in the upper-left corner of both ``Fig.~\ref{fig_ToneCNN_Mat}'' and ``Fig.~\ref{fig_STTC}''. Unfortunately, even the accuracy of the CNN, which scored 0.57, can't be considered a success given there are only 4 tones to classify. To achieve a higher accuracy with our proposed models, it might be necessary to acquire more training data, enhance the data processing techniques, balance the tone samples in the dataset and remove the ones with any uncertainty (based on the confusion of both our models around the first two tones).
 
 \section{Conclusion}
-This paragraph will be filled in the final version of this work.
+The Pronunciation Scoring accuracy of our models shows that it's in fact possible to achieve results comparable to human experts in the field. Although the Tone Classification task hasn't been accomplished at the same level, it's certainly within the reach of our successors given some enhancements listed in the previous paragraph are there to be made.
 
 % \subsection{Some Common Mistakes}\label{SCM}
 % \begin{itemize}
