@@ -124,9 +124,39 @@ For this task we used the numeric words from 0 to 10 and 100 from our Mandarin c
 The number of convolution filters grows to 128. Thanks to the MaxPooling layers, the model's number of trainable parameters is reduced, alleviating the computational cost and risk of overfitting. After extracting the features with convolutional blocks, we use a Flatten layer.
 Afterwards the tensors are passed to FCLs with 1024 and 128 units in this order and ReLU activation function. In order to prevent overfitting we use a Dropout layer that randomly disables half of the neurons, improving the model's generalization capability.
 In the end there is a 1-unit FCL with a sigmoid activation function, responsible for outputting a probability of given word, allowing binary classification. During the training we use the Adam optimizer \cite{Kingma2014AdamAM} with Binary Cross-Entropy loss function.
+The hyperparameters we used for this model are summarized in ``Tab.~\ref{tab_CNNPE_hyper}''.
+
+\begin{table}[hbtp]
+    \caption{Pronunciation Evaluation - CNN hyperparameters}
+    \begin{center}
+    \begin{tabular}{|c|c|}
+    \hline
+    \textbf{Parameter} & {\textbf{Value}} \\
+    \hline
+    batch size & 32 \\
+    \hline
+    learning rate & 0.0001 \\
+    \hline
+    dropout & 0.2 \\
+    \hline
+    smoothing & 0.1 \\
+    \hline
+    \end{tabular}
+    \label{tab_CNNPE_hyper}
+    \end{center}
+    \end{table}
 
 \subsection{Speech-Transformer for complete ASR}
 With this last model, using an implementation of \cite{vaswani2023attentionneed,8462506}, modified to enable training with \cite{shi2021aishell3multispeakermandarintts} and finetuning with our dataset, we attempted solving both tasks of Pronunciation Evaluation and Tone Classification.
+Transformers have recently gained high popularity in Sequence-to-Sequence tasks such as Natural Language Processing. The architecture we used is based on Multi-Head Attention, which enables applying the attention mechanism in parallel, with separate learnable parameters. The Batch Normalization technique typical for CNNs, here has been replaced by Layer Normalization applied in each Encoder and Decoder layer.
+The architecture is presented in more detail in ``Fig.~\ref{fig_STArch}''.
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Speech-Transformer.png}}
+    \caption{Speech-Transformer Architecture}
+    \label{fig_STArch} % ``Fig.~\ref{fig_Noise}''
+    \end{figure}
+
 The model would originally generate transcription sequences based on processed audio input. In case of Mandarin chinese, the transcription can be represented in traditional alphabet or in pinyin notation, which consists of syllables written with latin letters and denotes the tone of each phone.
 The pinyin is popular for learning purposes for foreigners who don't know the Chinese alphabet. It also enables us to simply split the phoneme into pronunciation and tone information.
 The model has been configured with default hyperparameter values as in \cite{8462506}. Due to lack of specific transcriptions in our dataset (we were limited to pronunciation scores and tone labels) the training split for the finetuning part had to be limited to correct recordings. % the minority unfortunately
