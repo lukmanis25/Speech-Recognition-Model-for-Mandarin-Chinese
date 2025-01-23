@@ -5,6 +5,7 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
+\usepackage{siunitx}
 \usepackage{textcomp}
 \usepackage{xcolor}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
@@ -52,36 +53,81 @@ Automatic Speech Recognition, Mispronunciation Detection and Diagnosis, Convolut
 \end{IEEEkeywords}
 
 \section{Introduction}
-In order to train new Speech Recognition models, we used AISHELL-3 \cite{shi2021aishell3multispeakermandarintts} dataset and a self-made one consisting of our university's students' recordings. We developed and compared several approaches for the tasks of Speech Recognition and Scoring and Tone Recognition.
+In order to train new Speech Recognition models, we used AISHELL-3 \cite{shi2021aishell3multispeakermandarintts} dataset and a self-made one consisting of recordings of students of Gdansk University of Technology. We developed and compared several approaches for the tasks of Speech and Scoring and Recognition and Tone Recognition.
 
 \section{Related Work}
-We conducted a literature review in search of existing research and solutions for the tasks of pronunciation and tone detection for Mandarin Chinese. We assumed criteria to look for Neural Network models trained with limited data, published in years 2014-2024 in english. We based our research on the following keywords: ``Speech Recognition'', ``Deep Learning'', ``Pronunciation Evaluation'' and fetched a total of 878 research papers from several databases. After eliminating duplicates and assessing the titles and abstracts we chose 12 most suiting articles for further reading. \\
-After the literature review, our first notion was the limitation of publicly available datasets, especially regarding the subject of Tone Classification (TC). \cite{warden2018speechcommandsdatasetlimitedvocabulary} mentions difficulties in finding and accessing datasets for ASR in Chinese and suggests a new one for Keyword Detection.
+We conducted a literature review in search of existing research and solutions for the tasks of pronunciation and tone detection for Mandarin chinese. We specified search criteria to look for Neural Network models trained with limited data, published in years 2014-2024 in english. We based our research on the following keywords: ``Speech Recognition'', ``Deep Learning'', ``Pronunciation Evaluation'' and fetched a total of 878 research papers from several databases. After eliminating duplicates and assessing the titles and abstracts we chose 12 most suiting articles for further reading. \\
+After the literature review, our first notion was the limited quantity of publicly available datasets, especially regarding the subject of Tone Classification (TC). \cite{warden2018speechcommandsdatasetlimitedvocabulary} mentions difficulties in finding and accessing datasets for ASR in Chinese and suggests a new one for Keyword Detection. We picked two Deep Learning architectures to build on and train: \cite{Gao2019ToneNetAC} (a Convolutional Neural Network - CNN), and \cite{8462506} (a Transformer).
 
 \section{Approach}
-We decided to first develop separate CNN models for the tasks of Pronunciation Evaluation (PE) and Tone Classification. Afterwards we attempted to solve both of these tasks using one, more complex architecture.
+We decided to first develop separate CNN models for the tasks of Pronunciation Evaluation (PE) and Tone Classification. Afterwards we attempted to solve both of these tasks using a Speech-Recognition architecture of a Transformer \cite{vaswani2023attentionneed,8462506}. It's possible to solve Pronunciation Scoring and Tone Classification tasks based on Speech-to-Text output in Mandarin chinese, as written chinese contains information about pronunciation and intonation. \
+We trained all models with our dataset (in case of the Transformer we also used \cite{shi2021aishell3multispeakermandarintts}) and compared the results to select the most accurate approach.
 
 \subsection{Data Processing}
-In order to ensure good training quality of our dataset we applied some preprocessing techniques. Firstly, we removed the incorrect recordings, for example only constituting of noise, or ones that didn't suffice the length requirements.
-Later, we trimmed the silent parts at the edges of the recordings and applied noise-reduction filters. Finally, we normalized the volume to achieve voice intensity consistency. \\
-We split the dataset into training, validation and test sets and balanced representation of positive and negative cases for each class. We conducted data augmentation on the training set. \\
+In order to ensure good training quality of our dataset we applied some preprocessing techniques. Firstly, we removed the incorrect recordings, for example only constituting of noise, or ones that didn't suffice the length requirements. We decided not to use recordings shorter than 0.5s as they were mostly empty or cut in the middle of a word. We have also excluded the top 5\% of the longest recordings. We made sure not to lose data coverage of each class in the process.
+We've filtered the recordings with high noise levels using the Root Mean Square (RMS) as the energy measure. We assumed a threshold of 0.004 and only left recordings with RMS above that value. We verified that the ones below were in fact too noisy to use in training. A Mel Spectrogram of such recording is presented in ``Fig.~\ref{fig_Noise}''. For comparison, ``Fig.~\ref{fig_NoNoise}'' presents a spectrogram with acceptable noise levels.
+
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_Noise.png}}
+    \caption{Spectrogram with high noise levels}
+    \label{fig_Noise} % ``Fig.~\ref{fig_Noise}''
+    \end{figure}
+
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_NoNoise.png}}
+    \caption{Spectrogram with acceptable noise levels}
+    \label{fig_NoNoise} % ``Fig.~\ref{fig_Noise}''
+    \end{figure}
+
+Later, we trimmed the silent parts at the edges of the recordings and applied noise-reduction filters. The effect of trimming silent parts is shown in ``Fig.~\ref{fig_Silence}'' and ``Fig.~\ref{fig_NoSilence}''.
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_Silence.png}}
+    \caption{Spectrogram before trimming silent parts}
+    \label{fig_Silence} % ``Fig.~\ref{fig_Noise}''
+    \end{figure}
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_NoSilence.png}}
+    \caption{Spectrogram after trimming silent parts}
+    \label{fig_NoSilence} % ``Fig.~\ref{fig_Noise}''
+    \end{figure}
+
+In order to reduce the noise of recordings, we applied techniques like noise profiling (based on noise from the beginning of recording), band-pass filters and spectral noise reduction.
+Results of noise reduction are presented in figures ``Fig.~\ref{fig_NoiseBefore}'' and ``Fig.~\ref{fig_NoiseAfter}''.
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_NoiseBefore.png}}
+    \caption{Spectrogram before noise reduction}
+    \label{fig_NoiseBefore} % ``Fig.~\ref{fig_Noise}''
+    \end{figure}
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_NoiseAfter.png}}
+    \caption{Spectrogram after noise reduction}
+    \label{fig_NoiseAfter} % ``Fig.~\ref{fig_Noise}''
+    \end{figure}
+
+We normalized the volume to achieve voice intensity consistency. After the normalization the amplitude of audio signal does not exceed the range from \numrange[range-phrase =\text{ to }]{-1}{1}. For normalization we used the \textit{librosa.util.normalize} function.
+We standardized the length of recordings by cutting and filling and balanced the representation of each class by equalizing the number of positive and negative samples.
+We split the dataset into training, validation and test sets (in proportion of 0.7, 0.15, 0.15). We conducted data augmentation on the training set, which included altering speed and voice level of recordings using functions from \textit{librosa.effects} library.
 After obtaining the spectrograms required as an input for our models, we observed a significant improvement in the training.
 
 \subsection{CNN for Tone Recognition}
-We have prepared a multilayer CNN to classify the tone of speech phonemes into one of 4 defined tones (1 to 4, not counting the neutral one, denoted by 0). It consists of convolution layers, batch normalization, activation functions and pooling layers.
+We used a multilayer CNN based on \cite{Gao2019ToneNetAC}. It classifies the tone of speech phonemes into one of 4 defined tones (1 to 4, not counting the neutral one, denoted by 0). The network consists of convolution layers, batch normalization, activation functions and pooling layers.
 The input layer takes two-dimensional data and passes the output to 4 convolution blocks with the number of filters ascending through values: 64, 128, 256, 512 and altering steps, which allow hierarchical feature extraction. Finally we apply Data Flattening combined with 2 Fully Connected Layers (FCLs) of 1024 units followed by a softmax layer to obtain probabilities.
-For this model we use the Stochastic gradient descent optimization algorithm \cite{sung2020ssgdsymmetricalstochasticgradient} with a low learning rate and special weights applied for classes with inconsistent representation in training data.
+For this model we used the Stochastic gradient descent optimization algorithm \cite{sung2020ssgdsymmetricalstochasticgradient} with a low learning rate and special weights applied for classes with inconsistent representation in training data.
 We used techniques of early stopping and saving checkpoints to avoid overfitting and ensure the best results are not lost.
 
 \subsection{CNN for Pronunciation Evaluation}
-For this task we used the numeric words from 0 to 10 and 100 from our Mandarin Chinese audio dataset with labels provided by a native Chinese speaking expert in the field. The network takes a 3-channel spectrogram as an input. Similarly to our Tone Recognition model, the architecture is based on convolution and pooling layers.
-The number of convolution filters grows to 128. Thanks to the MaxPooling layers, the model can be trained to focus on the meaningful parts of the signal, ignoring the noise. After extracting the features with convolutional blocks, we use a Flatten layer.
-Afterwards the tensors are passed to FCLs with 1024 and 128 units in this order and ReLU activation function. In order to avoid overfitting we use a Dropout layer that randomly disables half of the neurons, improving the model's generalization capability.
+For this task we used the numeric words from 0 to 10 and 100 from our Mandarin chinese audio dataset with labels provided by a native Chinese speaking expert in the field. The network takes a 3-channel spectrogram as an input. Similarly to our Tone Recognition model, the architecture is based on convolution and pooling layers.
+The number of convolution filters grows to 128. Thanks to the MaxPooling layers, the model's number of trainable parameters is reduced, alleviating the computational cost and risk of overfitting. After extracting the features with convolutional blocks, we use a Flatten layer.
+Afterwards the tensors are passed to FCLs with 1024 and 128 units in this order and ReLU activation function. In order to prevent overfitting we use a Dropout layer that randomly disables half of the neurons, improving the model's generalization capability.
 In the end there is a 1-unit FCL with a sigmoid activation function, responsible for outputting a probability of given word, allowing binary classification. During the training we use the Adam optimizer \cite{Kingma2014AdamAM} with Binary Cross-Entropy loss function.
 
 \subsection{Speech-Transformer for complete ASR}
 With this last model, using an implementation of \cite{vaswani2023attentionneed,8462506}, modified to enable training with \cite{shi2021aishell3multispeakermandarintts} and finetuning with our dataset, we attempted solving both tasks of Pronunciation Evaluation and Tone Classification.
-The model would originally generate transcription sequences based on processed audio input. In case of Mandarin Chinese, the transcription can be represented in traditional alphabet or in pinyin notation, which consists of syllables written with latin letters and denotes the tone of each phone.
+The model would originally generate transcription sequences based on processed audio input. In case of Mandarin chinese, the transcription can be represented in traditional alphabet or in pinyin notation, which consists of syllables written with latin letters and denotes the tone of each phone.
 The pinyin is popular for learning purposes for foreigners who don't know the Chinese alphabet. It also enables us to simply split the phoneme into pronunciation and tone information.
 The model has been configured with default hyperparameter values as in \cite{8462506}. Due to lack of specific transcriptions in our dataset (we were limited to pronunciation scores and tone labels) the training split for the finetuning part had to be limited to correct recordings. % the minority unfortunately
 For the testing, however, we used balanced amount of correct and incorrect recordings for pronunciation evaluation and all the recording for tone classification.
@@ -124,9 +170,9 @@ F1-score & 0.76 \\
 \end{table}
 
 \begin{figure}[hbtp]
-\centerline{\includegraphics[width=0.5\textwidth]{Fig_STPE.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_STPE.png}}
 \caption{Speech-Transformer - Confusion Matrix for PE}
-\label{fig_STPE}
+\label{fig_STPE} % ``Fig.~\ref{fig_STPE}''
 \end{figure}
 
 \subsection{Speech-Transformer - Tone Classification}
@@ -134,7 +180,7 @@ Before the finetuning, this model would achieve at most 50\% accuracy, meaning h
 Afterwards it actually dropped below that value, because it was not trained separately for this task and two tones out of four are underrepresented within the numeric words from 1 to 10, which can be observed on a confusion matrix ``Fig.~\ref{fig_STTC}''.
 
 \begin{figure}[hbtp]
-    \centerline{\includegraphics[width=0.5\textwidth]{Fig_STTC.png}}
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_STTC.png}}
     \caption{Speech-Transformer - Confusion Matrix for TC}
     \label{fig_STTC}
 \end{figure}
