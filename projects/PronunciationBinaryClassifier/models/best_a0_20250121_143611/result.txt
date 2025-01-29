@@ -1,0 +1,1 @@
+Word a0: Accuracy = 0.78, F1 Score = 0.78
