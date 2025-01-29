@@ -1,16 +1,21 @@
 import os
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from tf_keras import Input, Model
+from tf_keras.src.backend import cast
 from tf_keras.src.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint, Callback
 from tf_keras.src.layers import Conv2D, MaxPooling2D, Flatten, Embedding, Concatenate, Dense, Dropout, BatchNormalization, GlobalAveragePooling2D
 from tf_keras.src.optimizers import Adam
-from keras.src.saving import load_model
-
+from tf_keras.src.losses import binary_crossentropy, BinaryCrossentropy
+from tf_keras.src.models import load_model
+#from keras.src.saving import load_model
+import tensorflow as tf
 import os
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 from tf_keras.src.regularizers import l2
 from datetime import datetime
 import shutil
@@ -18,19 +23,18 @@ import threading
 from utils.utils import *
 from utils.InterruptTraining import InterruptTraining
 
+print("Available GPUs:")
+print(tf.config.list_physical_devices('GPU'))
+
 #PARAMS
-label_dir = '../../recordings_with_tones.csv'
-audio_dir = '../../recordings/stageI'
-data_dir = "data"
-load_data_from_file = True  # Ustaw na False, aby przetworzyć dane dźwięke na nowo, na True, aby je załadować z pliku
-load_dir = "data/a100_20241214_205334/spectrogram_augmented"
+load_dir = "data/a0_20250121_111131/spectrogram_augmented"
 model_dir = "models"
 
-#input_shape =  (128, 72, 3)#(72, 13, 1)#(128, 72, 3)#(128, 64, 1)#(64, 13, 1) #(72, 13, 1) #(63, 13, 1) #wcześniej było (13, 200, 1) 
-input_shape = (128, 66, 3)
-one_word_model = True
+
+#INPUT DATA
+input_shape = (128, 72, 3)
 word_index_to_name = {
-    0: 'a10'
+    0: 'a0'
 }
 # word_index_to_name = {
 #     0: 'a0', 1: 'a1', 2: 'a2', 3: 'a3', 4: 'a4',
@@ -38,105 +42,15 @@ word_index_to_name = {
 #     10: 'a10', 11: 'a100'
 # }
 
+#HPARAMS
 learning_rate=1e-4 #1e-3 1e-4
 batch_size=32
+dropout=0.2
+smoothing=0.1
+acceptance_threshold=0.5
 
-patience=20
-min_delta=0.0001
-
-
-
-# def build_pronunciation_model_with_word_info(num_words=12, embedding_dim=1):
-#     # Audio input (MFCCs)
-#     input_audio = Input(shape=(13, 200, 1))  # Assuming input is MFCC features of shape (13, 200)
-
-#     # Word identifier input (word index as integer)
-#     input_word = Input(shape=(1,), dtype='int32')  # Shape (1,) for single word index
-
-#     # Convolutional layers for audio feature extraction
-#     x = Conv2D(32, (3, 3), activation='relu', kernel_regularizer=l2(0.01))(input_audio)
-#     x = MaxPooling2D(pool_size=(2, 2))(x)
-#     x = Dropout(0.4)(x)  # Dropout layer to reduce overfitting
-#     x = Conv2D(64, (3, 3), activation='relu', kernel_regularizer=l2(0.01))(x)
-#     x = MaxPooling2D(pool_size=(2, 2))(x)
-#     x = Dropout(0.4)(x)  # Dropout layer
-#     x = Flatten()(x)
-
-#     # Embedding layer to map word index to a vector representation
-#     embedding = Embedding(input_dim=num_words, output_dim=embedding_dim, input_length=1)(input_word)
-#     embedding = Flatten()(embedding)
-
-#     # Concatenate the audio features and the word embedding
-#     x = Concatenate()([x, embedding])
-
-#     # Fully connected layers
-#     x = Dense(64, activation='relu', kernel_regularizer=l2(0.01))(x)
-#     x = Dropout(0.4)(x)  # Dropout layer
-
-#     # Output layer: single neuron for pronunciation quality (0 or 1)
-#     output = Dense(1, activation='sigmoid')(x)  # Sigmoid for binary classification
-
-#     # Build the model
-#     model = Model(inputs=[input_audio, input_word], outputs=output)
-#     model.compile(optimizer=Adam(learning_rate=0.01), loss='binary_crossentropy', metrics=['accuracy'])
-
-#     return model
-
-# def build_pronunciation_model_with_word_info_no_dropout(num_words=12, embedding_dim=10):
-#     # Audio input (MFCCs)
-#     input_audio = Input(shape=(13, 200, 1))
-
-#     # Word identifier input (word index as integer)
-#     input_word = Input(shape=(1,), dtype='int32')  # Shape (1,) for single word index
-
-#     # Convolutional layers for audio feature extraction
-#     x = Conv2D(32, (3, 3), activation='relu')(input_audio)
-#     x = MaxPooling2D(pool_size=(2, 2))(x)
-#     x = Conv2D(64, (3, 3), activation='relu')(x)
-#     x = MaxPooling2D(pool_size=(2, 2))(x)
-#     x = Flatten()(x)
-
-#     # Embedding layer to map word index to a vector representation
-#     embedding = Embedding(input_dim=num_words, output_dim=embedding_dim, input_length=1)(input_word)
-#     embedding = Flatten()(embedding)
-
-#     # Concatenate the audio features and the word embedding
-#     x = Concatenate()([x, embedding])
-
-#     # Fully connected layer
-#     x = Dense(64, activation='relu')(x)
-
-#     # Output layer: single neuron for pronunciation quality (0 or 1)
-#     output = Dense(1, activation='sigmoid')(x)  # Sigmoid for binary classification (well-pronounced or mispronounced)
-
-#     # Build the model
-#     model = Model(inputs=[input_audio, input_word], outputs=output)
-#     model.compile(optimizer=Adam(), loss='binary_crossentropy', metrics=['accuracy'])
-
-#     return model
-
-def get_model(num_words=12, embedding_dim=10):
-    input_audio = Input(shape=input_shape)
-    input_word = Input(shape=(1,), dtype='int32') 
-    x = Conv2D(64, (3,3), activation='relu', padding='same')(input_audio)
-    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    x = Conv2D(128, (3,3), activation='relu', padding='same')(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    x = Flatten()(x)
-    embedding = Embedding(input_dim=num_words, output_dim=embedding_dim, input_length=1)(input_word)
-    embedding = Flatten()(embedding)
-    x = Concatenate()([x, embedding])
-    x = Dense(1024, activation='relu')(x) 
-    x = Dense(128, activation='relu')(x) 
-    x = Dropout(0.5)(x)
-    output = Dense(1, activation='sigmoid')(x)
-    model = Model(inputs=[input_audio, input_word], outputs=output)
-    model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
-    return model
+patience=15
+min_delta=0
 
 
 def get_one_word_model(num_words=12, embedding_dim=10):
@@ -152,84 +66,32 @@ def get_one_word_model(num_words=12, embedding_dim=10):
     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
     x = Flatten()(x)
     x = Dense(1024, activation='relu')(x) 
+    x = Dropout(dropout)(x)
     x = Dense(128, activation='relu')(x) 
-    x = Dropout(0.5)(x)
+    x = Dropout(dropout)(x)
     output = Dense(1, activation='sigmoid')(x)
     model = Model(inputs=[input_audio, input_word], outputs=output)
-    model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(
+        optimizer=Adam(learning_rate=learning_rate), 
+        loss=BinaryCrossentropy(label_smoothing=smoothing), 
+        metrics=['accuracy']
+    )
     return model
 
-# def get_one_word_model(num_words=12, embedding_dim=10):
-#     input_audio = Input(shape=input_shape)
-#     input_word = Input(shape=(1,), dtype='int32') 
-
-#     # Warstwy konwolucyjne z BatchNormalization i regularyzacją L2
-#     x = Conv2D(64, (3,3), activation='relu', padding='same', kernel_regularizer=l2(0.01))(input_audio)
-#     x = BatchNormalization()(x)
-#     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    
-#     x = Conv2D(128, (3,3), activation='relu', padding='same', kernel_regularizer=l2(0.01))(x)
-#     x = BatchNormalization()(x)
-#     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    
-#     x = Conv2D(128, (3, 3), activation='relu', padding='same', kernel_regularizer=l2(0.01))(x)
-#     x = BatchNormalization()(x)
-#     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    
-#     x = Conv2D(128, (3, 3), activation='relu', padding='same', kernel_regularizer=l2(0.01))(x)
-#     x = BatchNormalization()(x)
-#     x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-
-#     # GlobalAveragePooling zamiast Flatten
-#     x = Flatten()(x)
-
-#     # Warstwa Dense z regularyzacją i Dropout
-#     x = Dense(1024, activation='relu', kernel_regularizer=l2(0.01))(x) 
-#     x = Dense(128, activation='relu', kernel_regularizer=l2(0.01))(x) 
-#     x = Dropout(0.5)(x)
-
-#     # Warstwa wyjściowa
-#     output = Dense(1, activation='sigmoid')(x)
-
-    # Tworzenie i kompilacja modelu
-    model = Model(inputs=[input_audio, input_word], outputs=output)
-    model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
-
-    return model
 
 X_train, X_val, X_test, word_train, word_val, word_test, y_train, y_val, y_test = (None,)*9
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+# Ładowanie danych
+train_data = load_data(load_dir, "train")
+val_data = load_data(load_dir, "val")
+test_data = load_data(load_dir, "test")
 
-if not load_data_from_file:
-    labels = load_labels(label_dir)
-    save_dir = os.path.join(data_dir, timestamp)
-    
-    subsets = ["train", "val", "test"]
-    for subset in subsets:
-        os.makedirs(os.path.join(save_dir, subset), exist_ok=True)
-    
-    X, word_indices, y = load_data_conv(audio_dir, labels, 200)
-    X_train, X_test, word_train, word_test, y_train, y_test = train_test_split(X, word_indices, y, test_size=0.10, random_state=42)
-    X_train, X_val, word_train, word_val, y_train, y_val = train_test_split(X_train, word_train, y_train, test_size=0.111, random_state=42)
-    
-    # Zapis danych
-    save_data({"X_train": X_train, "y_train": y_train, "word_train": word_train}, save_dir, "train")
-    save_data({"X_val": X_val, "y_val": y_val, "word_val": word_val}, save_dir, "val")
-    save_data({"X_test": X_test, "y_test": y_test, "word_test": word_test}, save_dir, "test")
-    
-    print(f"Dane zapisane w katalogu: {save_dir}")
-else:
-    # Ładowanie danych
-    train_data = load_data(load_dir, "train")
-    val_data = load_data(load_dir, "val")
-    test_data = load_data(load_dir, "test")
-    
-    X_train, y_train, word_train = train_data["X_train"], train_data["y_train"], train_data["word_train"]
-    X_val, y_val, word_val = val_data["X_val"], val_data["y_val"], val_data["word_val"]
-    X_test, y_test, word_test = test_data["X_test"], test_data["y_test"], test_data["word_test"]
+X_train, y_train, word_train = train_data["X_train"], train_data["y_train"], train_data["word_train"]
+X_val, y_val, word_val = val_data["X_val"], val_data["y_val"], val_data["word_val"]
+X_test, y_test, word_test = test_data["X_test"], test_data["y_test"], test_data["word_test"]
 
-    print(f"Dane załadowane z katalogu: {load_dir}")
+print(f"Dane załadowane z katalogu: {load_dir}")
     
 # Wyświetlanie wielkości zbiorów
 print(f"Liczba próbek w zbiorze treningowym: {len(X_train)}")
@@ -253,7 +115,7 @@ cur_train_logs_path = os.path.join(model_cur_dir, 'train_logs')
 os.makedirs(cur_train_logs_path, exist_ok=True)
 # Build the model
 #model = build_pronunciation_model_with_word_info()
-model = get_model() if not one_word_model else get_one_word_model()
+model = get_one_word_model()
 save_model_info(model, os.path.join(model_save_dir, 'model_info.txt'))
 best_checkpoint_dir= os.path.join(model_save_dir, f'best_checkpoint_model.h5')
 
@@ -271,14 +133,14 @@ history = model.fit(
     epochs=100,  # Increased number of epochs to allow early stopping to work
     batch_size=batch_size,
     validation_data=([X_val, word_val], y_val),
-    callbacks=[tensorboard_callback, tensorboard_callback_cur, checkpoint, interrupt_callback]
+    callbacks=[tensorboard_callback, tensorboard_callback_cur, checkpoint, interrupt_callback, early_stopping]
 )
 
 #model.save(os.path.join(model_save_dir, f'model.h5'))
 load_model(best_checkpoint_dir)
 # Make predictions on the test set
 predictions = model.predict([X_test, word_test])
-predicted_labels = (predictions > 0.5).astype(int)  # Threshold at 0.5
+predicted_labels = (predictions > acceptance_threshold).astype(int)
 
 
 
@@ -302,7 +164,22 @@ for word in unique_words:
     word_f1 = f1_score(y_true_word, y_pred_word, average='weighted')
     word_f1_scores[word] = word_f1
 
-# Print accuracy for each word using the name mapping
+# Compute overall confusion matrix
+overall_confusion_matrix = confusion_matrix(y_test.flatten(), predicted_labels.flatten())
+
+# Reorder confusion matrix for Positive first
+reordered_matrix = overall_confusion_matrix[[1, 0], :][:, [1, 0]]
+
+# Save confusion matrix as an image
+plt.figure(figsize=(8, 6))
+sns.heatmap(reordered_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=["Predicted Positive", "Predicted Negative"], yticklabels=["Actual Positive", "Actual Negative"])
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+conf_matrix_path = os.path.join(model_save_dir, 'confusion_matrix.jpg')
+plt.savefig(conf_matrix_path)
+plt.close()
+
 with open(os.path.join(model_save_dir, f'result.txt'), "w") as file:
     for word_index, accuracy in word_accuracies.items():
         word_name = word_index_to_name[word_index]
@@ -310,3 +187,10 @@ with open(os.path.join(model_save_dir, f'result.txt'), "w") as file:
         result = f"Word {word_name}: Accuracy = {accuracy:.2f}, F1 Score = {f1_score_value:.2f}"
         print(result)
         file.write(result + "\n")
+        
+with open(os.path.join(model_save_dir, f'hparamas.txt'), "w") as file:
+    file.write(f"batch size: {batch_size}" + "\n")
+    file.write(f"learning rate: {learning_rate}" + "\n")
+    file.write(f"dropout: {dropout}" + "\n")
+    file.write(f"smooting: {smoothing}" + "\n")
+    file.write(f"acceptance threshold: {acceptance_threshold}" + "\n")

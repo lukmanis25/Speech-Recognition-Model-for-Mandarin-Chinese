@@ -1,0 +1,5 @@
+batch size: 32
+learning rate: 0.0001
+dropout: 0.2
+smooting: 0.1
+acceptance threshold: 0.5
