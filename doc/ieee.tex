@@ -180,6 +180,7 @@ The results of this CNN are also presented in a form of a confusion matrix in
 \subsection{CNN for Pronunciation Evaluation}
 
 Loss function and accuracy of the model we attempted to train for all the words are visualized in ``Fig.~\ref{CNNPELoss}'' and ``Fig.~\ref{CNNPEAcc}''.
+Similarly, we include loss function and accuracy plots for one of models trained for each word: ``Fig.~\ref{CNNPE3Loss}'' and ``Fig.~\ref{CNNPE3Acc}''.
 The results of a model trained for each word are presented in ``Tab.~\ref{tab_CNNPE_acc}''.
 
 \begin{figure}[hbtp]
@@ -192,6 +193,19 @@ The results of a model trained for each word are presented in ``Tab.~\ref{tab_CN
     \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_CNN_PE_acc.png}}
     \caption{CNN PE Accuracy in time \textbar \; blue - validation, orange - training}
     \label{CNNPEAcc} % ``Fig.~\ref{fig_ToneCNN_Mat}''
+    \end{figure}
+
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_CNN_a3_loss.png}}
+    \caption{CNN PE for number 3 Loss function in time \textbar \; blue - validation, orange - training}
+    \label{CNNPE3Loss} % ``Fig.~\ref{fig_ToneCNN_Mat}''
+    \end{figure}
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_CNN_a3_acc.png}}
+    \caption{CNN PE for number 3 Accuracy in time \textbar \; blue - validation, orange - training}
+    \label{CNNPE3Acc} % ``Fig.~\ref{fig_ToneCNN_Mat}''
     \end{figure}
 
 \begin{table}[hbtp]
