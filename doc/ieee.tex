@@ -8,6 +8,8 @@
 \usepackage{siunitx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{hyperref}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -175,9 +177,22 @@ The results of this CNN are also presented in a form of a confusion matrix in
     \label{fig_ToneCNN_Mat} % ``Fig.~\ref{fig_ToneCNN_Mat}''
     \end{figure}
 
-\subsection{CNN - Confusion Matrix for Tone Classification}
+\subsection{CNN for Pronunciation Evaluation}
 
+Loss function and accuracy of the model we attempted to train for all the words are visualized in ``Fig.~\ref{CNNPELoss}'' and ``Fig.~\ref{CNNPEAcc}''.
 The results of a model trained for each word are presented in ``Tab.~\ref{tab_CNNPE_acc}''.
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_CNN_PE_loss.png}}
+    \caption{CNN PE Loss function in time \textbar \; blue - validation, orange - training}
+    \label{CNNPELoss} % ``Fig.~\ref{fig_ToneCNN_Mat}''
+    \end{figure}
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_CNN_PE_acc.png}}
+    \caption{CNN PE Accuracy in time \textbar \; blue - validation, orange - training}
+    \label{CNNPEAcc} % ``Fig.~\ref{fig_ToneCNN_Mat}''
+    \end{figure}
 
 \begin{table}[hbtp]
     \caption{CNN - Pronunciation Evaluation Metrics}
@@ -219,7 +234,22 @@ The results of a model trained for each word are presented in ``Tab.~\ref{tab_CN
 
 % \subsection{Speech-Transformer - Pronunciation Evaluation}
 \subsection{Speech-Transformer}
+
+Loss function for this model is plotted against time (training epochs) in ``Fig.~\ref{STLoss}''.
+``Fig.~\ref{STLossFT}'' presents loss function during finetuning.
 We measured this model with an accuracy metric. The results are given in the table ``Tab.~\ref{tab_STPE}''. We have also plotted a confusion matrix ``Fig.~\ref{fig_STPE}''.
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_ST_loss.png}}
+    \caption{Speech-Transformer - loss function in time}
+    \label{STLoss} % ``Fig.~\ref{fig_ToneCNN_Mat}''
+    \end{figure}
+
+\begin{figure}[hbtp]
+    \centerline{\includegraphics[width=0.5\textwidth]{Figures/Fig_ST_Finetuning_loss.png}}
+    \caption{Speech-Transformer finetuning - loss function in time}
+    \label{STLossFT} % ``Fig.~\ref{fig_ToneCNN_Mat}''
+    \end{figure}
 
 \begin{table}[hbtp]
 \caption{Speech-Transformer - Pronunciation Evaluation Metrics}
@@ -262,6 +292,7 @@ As per Tone Classification, the CNN has outperformed the Speech-Transformer. It'
 
 \section{Conclusion}
 The Pronunciation Scoring accuracy of our models shows that it's in fact possible to achieve results comparable to human experts in the field. Although the Tone Classification task hasn't been accomplished at the same level, it's certainly within the reach of our successors given some enhancements listed in the previous paragraph are there to be made.
+While the proposed solution shows promising initial results, it requires further refinement before it can be considered production-ready. Therefore, the main contribution of this work lies in providing a foundational implementation that can serve as a starting point for future research and improvements. To facilitate this, we have made our codebase publicly available on GitHub: \href{https://github.com/lukmanis25/Speech-Recognition-Model-for-Mandarin-Chinese}{https://github.com/lukmanis25/Speech-Recognition-Model-for-Mandarin-Chinese}.
 
 % \subsection{Some Common Mistakes}\label{SCM}
 % \begin{itemize}
